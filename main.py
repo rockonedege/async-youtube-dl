@@ -14,7 +14,7 @@ from pathlib import Path
 
 from utils import list_part_files, list_downloaded_files, flush_info, filename_to_url
 
-DOWNLOAD_TO = Path(os.environ.get('DOWNLOAD_TO', (r'/download')))
+DOWNLOAD_TO = Path(os.environ.get('DOWNLOAD_TO', (r'Z:\video\youtube')))
 YDL_PROXY = os.environ.get('YDL_PROXY')
 
 g_cache = Path(__file__).parent.absolute() / 'history.txt'
@@ -70,7 +70,7 @@ def persist(s):
 def main():
     from concurrent.futures import ThreadPoolExecutor
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         # timed_flush()
         executor.submit(timed_flush, 60)
         while True:
@@ -79,32 +79,46 @@ def main():
             if s.startswith('https://'):
                 executor.submit(run_one, s)
                 persist(s)
-            elif s == 'resume':
-                for name, url in list_part_files(DOWNLOAD_TO).items():
-                    flush_info(f'- {name}')
-                    if url:
-                        executor.submit(run_one, url)
-            elif s == 'ls-part':
-                list_part_files(DOWNLOAD_TO)
-            elif s == 'ls-a':
-                list_downloaded_files(DOWNLOAD_TO)
             else:
-                pass
+                cmds = commands()
+                f = cmds.get(s, lambda _: (False, False))[-1]
+                if f:
+                    f(executor)
 
 
-def print_help():
-    cmds = {
-        'resume':      "Resume downloading",
-        'ls-part':     "List partially downloaded files",
-        'ls-complete': "List fully downloaded files"
+def on_resume(executor):
+    for name, url in list_part_files(DOWNLOAD_TO).items():
+        flush_info(f'resuming {name}')
+        if url:
+            executor.submit(run_one, url)
+
+
+def on_ls_part(executor):
+    print_dict(list_part_files(DOWNLOAD_TO))
+
+def on_ls_complete(executor):
+    print_dict(list_downloaded_files(DOWNLOAD_TO))
+
+
+def print_dict(d):
+    flush_info('\n'.join(f'- {k}, {v}' for k, v in d.items()))
+
+def print_commands():
+    return '\n'.join(f'- {k}, {v[0]}' for k, v in commands().items())
+
+
+def commands():
+    return {
+        'resume': ("Resume downloading", on_resume),
+        'ls-part': ("List partially downloaded files", on_ls_part),
+        'ls-complete': ("List fully downloaded files", on_ls_complete)
     }
-    return '\n'.join(f'- {cmd}, {desc}' for cmd, desc in cmds.items())
 
 
 if __name__ == "__main__":
 
     enable_logging.init()
-    flush_info(f"\nProxy: {YDL_PROXY}, Download folder: {DOWNLOAD_TO}.\nCommands:\n{print_help()}\n")
-    print_help()
+    flush_info(
+        f"\nProxy: {YDL_PROXY}, Download folder: {DOWNLOAD_TO}.\nCommands:\n{print_commands()}\n")
 
     main()

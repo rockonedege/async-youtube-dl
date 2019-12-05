@@ -25,9 +25,7 @@ def list_part_files(root):
     return {f.name: filename_to_url(f) for f in Path(root).glob('*.part')}
 
 def list_downloaded_files(root):
-    for f in Path(root).glob('*.mp4'):
-        flush_info(f'- {f.name}')
-
+    return dict(enumerate(Path(root).glob('*.mp4')))
 
 def rename(root):
     # root = Path(r'Z:\video\youtube')
