@@ -75,7 +75,7 @@ def main():
         executor.submit(timed_flush, 60)
         while True:
             s = input(
-                f"{print_help()}\nInput youtube url please\n").lstrip()
+                f"Input youtube url below:\n").lstrip()
             if s.startswith('https://'):
                 executor.submit(run_one, s)
                 persist(s)
@@ -93,16 +93,18 @@ def main():
 
 
 def print_help():
-    cmds = {'ls-part': "List partially downloaded files",
-            'ls-complete': "List fully downloaded files",
-            'resume': "resume downloading"}
+    cmds = {
+        'resume':      "Resume downloading",
+        'ls-part':     "List partially downloaded files",
+        'ls-complete': "List fully downloaded files"
+    }
     return '\n'.join(f'- {cmd}, {desc}' for cmd, desc in cmds.items())
 
 
 if __name__ == "__main__":
 
     enable_logging.init()
-    flush_info(f"Proxy = {YDL_PROXY}, download to {DOWNLOAD_TO}.")
+    flush_info(f"\nProxy: {YDL_PROXY}, Download folder: {DOWNLOAD_TO}.\nCommands:\n{print_help()}\n")
     print_help()
 
     main()
